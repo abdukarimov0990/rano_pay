@@ -1,360 +1,544 @@
+/* =========================
+   CONFIG
+========================= */
 const SHEET_URL =
-  "https://script.google.com/macros/s/AKfycbyS2qxi3KQoGJwp1EywB8MRoFKDBCJZmpuHWVW4ehuWmSgE95mn3OJ5nSES4hU1YGYf/exec";
+  "https://script.google.com/macros/s/AKfycbwAXo7LcO-serC4G4P18LNMdTE2r_pfvhz9kaQ9YDQpK_9MdzvExvSKkQzvBekgAbEW/exec";
 
-document.addEventListener("DOMContentLoaded", async function () {
-  try {
-    // Ma'lumotlarni olish
-    const storedData = localStorage.getItem("formData");
-    if (!storedData) return;
+const PENDING_KEY = "pendingSubmission";
 
-    const data = JSON.parse(storedData);
-    if (!data.timestamp) return;
-
-    const date = new Date(data.timestamp);
-
-    // Format: oy.kun.yil soat:minut
-    const formattedDate = `${String(date.getMonth() + 1).padStart(
-      2,barakali ayol marafoni
-      "0"
-    )}.${String(date.getDate()).padStart(
-      2,
-      "0"
-    )}.${date.getFullYear()} ${String(date.getHours()).padStart(
-      2,
-      "0"
-    )}:${String(date.getMinutes()).padStart(2, "0")}`;
-    const formData = new FormData();
-    formData.append("Ism", data.name);
-    formData.append("Telefon raqam", data.phone_number);
-    formData.append("Tarif", data.type);
-    formData.append("Sana", formattedDate);
-    formData.append("imageUpload", false);
-    formData.append("sheetName", "SignUp");
-    formData.append("Oferta", data.offerta);
-
-    // Yuborish
-    const response = await fetch(SHEET_URL, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (response.ok) {
-      console.log("Ma'lumot yuborildi");
-    } else {
-      console.error("Yuborishda xatolik:", response.statusText);
-    }
-  } catch (error) {
-    console.error("Network error:", error);
-  }
-});
-
-const localData = JSON.parse(localStorage.getItem("formData") || "{}");
-const payment__tariff = document.querySelector(".payment__tariff");
-const payment__price = document.querySelectorAll(".pricesAll");
-const payment__price2 = document.querySelector(".payment__card-amount");
-
-payment__tariff.innerHTML = `
-    Tarif: ${localData.type || "VIP"}
-`;
-
-// Har bir .pricesAll elementiga qiymat qo'yish
-payment__price.forEach((priceElement) => {
-  if (localData.type === "standart") {
-    priceElement.innerHTML = "99 000 so'm";
-  } else if (localData.type === "standart+") {
-    priceElement.innerHTML = "99 000 so'm";
-  } else {
-    priceElement.innerHTML = "99 000 so'm";
-  }
-});
-
-const priceUSD = document.querySelector(".priceUSD");
-
-// Determine the UZS amount based on the tariff
-let amountUZS;
-if (localData.type === "standart") {
-  amountUZS = 99000;
-} else if (localData.type === "standart+") {
-  amountUZS = 99000;
-} else {
-  amountUZS = 99000;
+/* =========================
+   HELPERS
+========================= */
+function formatUZS(n) {
+  const num = Number(n || 0);
+  return num.toLocaleString("ru-RU").replace(/,/g, " ");
 }
 
-// Convert UZS to USD and set the value in the priceUSD element
-convertUZStoUSD(amountUZS).then((usd) => {
-  if (usd && priceUSD) {
-    priceUSD.innerHTML = `$${usd}`;
+function safeJSONParse(str, fallback = null) {
+  try {
+    return JSON.parse(str);
+  } catch {
+    return fallback;
   }
-});
+}
 
+/**
+ * formData'ni har xil formatlardan bitta normal formatga keltiradi
+ * - minified: { Ism, TelefonRaqam, SanaSoat, ... }
+ * - new:      { name, phone_number, timestamp, ... }
+ */
+function normalizeFormData(raw) {
+  const obj = raw && typeof raw === "object" ? raw : {};
+
+  const name = (obj.name ?? obj.Ism ?? obj.ism ?? obj.Имя ?? "").toString().trim();
+
+  const phone = (obj.phone_number ?? obj.TelefonRaqam ?? obj.phone ?? obj.telefon ?? "")
+    .toString()
+    .trim();
+
+  const timestamp = (obj.timestamp ?? obj.createdAt ?? obj.Sana ?? obj.SanaSoat ?? obj.date ?? "")
+    .toString()
+    .trim();
+
+  const type = (obj.type ?? obj.Tarif ?? obj.tariff ?? obj.Tариф ?? "").toString().trim();
+
+  const price = Number(obj.price ?? obj.Narx ?? obj.amount ?? 0) || 0;
+
+  const currency = (obj.currency ?? "UZS").toString();
+
+  const offerta = obj.offerta ?? obj.Oferta ?? obj.OFERTA ?? false;
+
+  return {
+    name: name || "",
+    phone_number: phone || "",
+    timestamp: timestamp || "",
+    type: type || "",
+    price,
+    currency,
+    offerta: !!offerta,
+  };
+}
+
+function getFormData() {
+  const raw = safeJSONParse(localStorage.getItem("formData") || "null", null);
+  return normalizeFormData(raw);
+}
+
+function setFormData(patch) {
+  const prevRaw = safeJSONParse(localStorage.getItem("formData") || "null", {});
+  const prev = normalizeFormData(prevRaw);
+
+  const patchNorm = normalizeFormData(patch);
+
+  const next = {
+    ...prev,
+    ...patchNorm,
+
+    // patch ichidagi "eski keylar" bilan ham mos tushsin:
+    name: (patch.name ?? patch.Ism ?? prev.name ?? prevRaw?.name ?? prevRaw?.Ism ?? "").toString().trim(),
+    phone_number: (patch.phone_number ?? patch.TelefonRaqam ?? prev.phone_number ?? prevRaw?.phone_number ?? prevRaw?.TelefonRaqam ?? "")
+      .toString()
+      .trim(),
+    type: (patch.type ?? patch.Tarif ?? prev.type ?? prevRaw?.type ?? prevRaw?.Tarif ?? "").toString().trim(),
+    price: Number(patch.price ?? patch.Narx ?? prev.price ?? prevRaw?.price ?? prevRaw?.Narx ?? 0) || 0,
+    currency: (patch.currency ?? prev.currency ?? "UZS").toString(),
+    timestamp: (patch.timestamp ?? patch.createdAt ?? prev.timestamp ?? prevRaw?.timestamp ?? prevRaw?.createdAt ?? prevRaw?.SanaSoat ?? "")
+      .toString()
+      .trim(),
+    offerta: !!(patch.offerta ?? patch.Oferta ?? prev.offerta),
+  };
+
+  localStorage.setItem("formData", JSON.stringify(next));
+  return next;
+}
+
+function getSelectedTariff() {
+  const t = safeJSONParse(localStorage.getItem("selectedTariff") || "null", null);
+  if (t && t.name && t.price) return t;
+  return { name: "Tejamkor Ayol", price: 99000, currency: "UZS" };
+}
+
+function setSelectedTariff(tariff) {
+  localStorage.setItem("selectedTariff", JSON.stringify(tariff));
+}
+
+function ensureSheetDateTime() {
+  // Sana: YYYY-MM-DD, vaqt: HH:MM:SS
+  const now = new Date();
+  const Sana = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+    now.getDate()
+  ).padStart(2, "0")}`;
+  const vaqt = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(
+    2,
+    "0"
+  )}:${String(now.getSeconds()).padStart(2, "0")}`;
+  return { Sana, vaqt };
+}
+
+/* =========================
+   MODAL OPEN/CLOSE
+========================= */
+function openModal() {
+  const modal = document.getElementById("registrationModal");
+  if (!modal) return;
+  modal.style.display = "block";
+  document.documentElement.style.overflow = "hidden";
+}
+
+function closeModal() {
+  const modal = document.getElementById("registrationModal");
+  if (!modal) return;
+  modal.style.display = "none";
+  document.documentElement.style.overflow = "";
+}
+
+/* =========================
+   SIGNUP SEND (ONE-TIME)
+   refresh bo‘lsa qayta yubormaydi
+   (Bu qism oldingidek qoladi. CORS bo‘lsa ham ko‘p holatda ishlaydi, lekin kerak bo‘lsa
+   keyin FormSubmit-ga o‘tkazamiz. Hozircha originalni saqlayapman.)
+========================= */
+async function sendSignupIfNeeded() {
+  const localData = getFormData();
+  if (!localData.name || !localData.phone_number) return;
+
+  const sentKey = "signupSent_v1";
+  if (localStorage.getItem(sentKey) === "1") return;
+
+  let formattedDate = "";
+  try {
+    const d = localData.timestamp ? new Date(localData.timestamp) : new Date();
+    formattedDate = `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(
+      2,
+      "0"
+    )}.${d.getFullYear()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  } catch {
+    formattedDate = localData.timestamp || "";
+  }
+
+  const tariff = getSelectedTariff();
+  const tariffName = localData.type || tariff.name;
+  const tariffPrice = Number(localData.price || tariff.price || 0);
+
+  const fd = new FormData();
+  fd.append("Ism", localData.name);
+  fd.append("Telefon raqam", localData.phone_number);
+  fd.append("Tarif", tariffName);
+  fd.append("Narx", String(tariffPrice));
+  fd.append("Sana", formattedDate);
+  fd.append("imageUpload", "false");
+  fd.append("sheetName", "SignUp");
+  fd.append("Oferta", String(!!localData.offerta));
+
+  try {
+    const res = await fetch(SHEET_URL, { method: "POST", body: fd });
+    if (res.ok) {
+      localStorage.setItem(sentKey, "1");
+    } else {
+      console.error("SignUp yuborishda xatolik:", res.statusText);
+    }
+  } catch (err) {
+    console.error("SignUp network error:", err);
+  }
+}
+
+/* =========================
+   USD CONVERTER
+========================= */
 async function convertUZStoUSD(amountUZS) {
   try {
     const response = await fetch(
       "https://v6.exchangerate-api.com/v6/fdb1c54a6bf927bbc9eb4862/latest/UZS"
     );
     const data = await response.json();
-    const rate = data.conversion_rates.USD; // 1 UZS = ? USD (masalan, 0.00007872)
-    const amountUSD = (amountUZS * rate).toFixed(2); // So‘mni USD ga aylantirish
-    return amountUSD;
+    const rate = data?.conversion_rates?.USD;
+    if (!rate) return null;
+    return (Number(amountUZS) * rate).toFixed(2);
   } catch (error) {
     console.error("Valyuta kursini olishda xatolik:", error);
     return null;
   }
 }
-document
-  .getElementById("paymentForm")
-  .addEventListener("submit", async function (event) {
-    event.preventDefault();
 
-    const submitButton = this.querySelector(".payment__btn");
-    submitButton.disabled = true;
-    submitButton.textContent = "Yuborilmoqda...";
+/* =========================
+   MAIN DOM READY
+========================= */
+document.addEventListener("DOMContentLoaded", () => {
+  /* ---------- TARIF BUTTONS ---------- */
+  const tariffInput = document.getElementById("tariffInput");
 
-    try {
-      const localData = JSON.parse(localStorage.getItem("formData") || "{}");
+  document.querySelectorAll(".registerBtn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const name = (btn.dataset.tariffName || "Tarif").trim();
+      const price = Number(btn.dataset.tariffPrice || 0);
 
-      if (!localData.name || !localData.phone_number) {
-        alert(
-          "Ism yoki telefon raqami topilmadi. Iltimos, formani to‘ldiring."
-        );
-        submitButton.disabled = false;
-        submitButton.textContent = "Davom etish";
+      const tariff = { name, price, currency: "UZS" };
+      setSelectedTariff(tariff);
+
+      if (tariffInput) tariffInput.value = name;
+
+      openModal();
+    });
+  });
+
+  // Default tarif bo‘lmasa qo‘yib ketamiz
+  if (!localStorage.getItem("selectedTariff")) {
+    const t = { name: "Tejamkor Ayol", price: 99000, currency: "UZS" };
+    setSelectedTariff(t);
+    if (tariffInput && !tariffInput.value) tariffInput.value = t.name;
+  }
+
+  /* ---------- MODAL CLOSE EVENTS ---------- */
+  const closeBtn = document.getElementById("closeModalBtn");
+  if (closeBtn) closeBtn.addEventListener("click", closeModal);
+
+  const overlay = document.querySelector(".homeModalOverlay");
+  if (overlay) overlay.addEventListener("click", closeModal);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeModal();
+  });
+
+  /* ---------- REGISTRATION FORM ---------- */
+  const form = document.getElementById("registrationForm");
+  if (form) {
+    const nameInput = document.getElementById("name");
+    const phoneInput = document.getElementById("phone");
+    const nameError = document.getElementById("nameError");
+    const phoneError = document.getElementById("phoneError");
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const name = (nameInput?.value || "").trim();
+      const phoneRaw = (phoneInput?.value || "").trim();
+
+      let ok = true;
+
+      if (!name) {
+        ok = false;
+        if (nameError) nameError.style.display = "block";
+      } else if (nameError) nameError.style.display = "none";
+
+      const digits = phoneRaw.replace(/\D/g, "");
+      if (digits.length < 9) {
+        ok = false;
+        if (phoneError) phoneError.style.display = "block";
+      } else if (phoneError) phoneError.style.display = "none";
+
+      if (!ok) return;
+
+      const tariff = getSelectedTariff();
+
+      // formData saqlash (oldingidek)
+      setFormData({
+        name,
+        phone_number: phoneRaw.startsWith("+") ? phoneRaw : `+998${digits}`,
+        type: tariff.name,
+        price: tariff.price,
+        currency: tariff.currency,
+        timestamp: new Date().toISOString(),
+        offerta: true,
+      });
+
+      closeModal();
+    });
+  }
+
+  /* =========================
+     TIMER (2:00)
+  ========================= */
+  const timerElement = document.getElementById("timer");
+  if (timerElement) {
+    let [m, s] = (timerElement.innerText || "2:00").split(":");
+    let minutes = parseInt(m, 10) || 0;
+    let seconds = parseInt(s, 10) || 0;
+
+    const timerInterval = setInterval(() => {
+      if (minutes === 0 && seconds === 0) {
+        clearInterval(timerInterval);
+        timerElement.innerText = "00:00";
         return;
       }
 
-      const form = new FormData(this);
-      const paymentType = form.get("status") || "";
-      const file = form.get("chek");
+      if (seconds === 0) {
+        minutes--;
+        seconds = 59;
+      } else {
+        seconds--;
+      }
 
-      if (!file || file.size === 0) {
-        alert("Chek rasmini yuklang");
-        submitButton.disabled = false;
-        submitButton.textContent = "Davom etish";
+      timerElement.innerText = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    }, 1000);
+  }
+
+  /* =========================
+     PAYMENT PAGE UI
+  ========================= */
+  const localData = getFormData();
+  const selectedTariff = getSelectedTariff();
+
+  const tariffName = (localData.type || selectedTariff.name || "Tarif").toString();
+  const tariffPrice = Number(localData.price || selectedTariff.price || 0);
+
+  const payment__tariff = document.querySelector(".payment__tariff");
+  if (payment__tariff) payment__tariff.innerHTML = `Tarif: ${tariffName}`;
+
+  const payment__price = document.querySelectorAll(".pricesAll");
+  if (payment__price?.length) {
+    payment__price.forEach((el) => (el.innerHTML = formatUZS(tariffPrice)));
+  }
+
+  const payment__price2 = document.querySelector(".payment__card-amount");
+  if (payment__price2) payment__price2.innerHTML = formatUZS(tariffPrice);
+
+  const priceUSD = document.querySelector(".priceUSD");
+  if (priceUSD) {
+    convertUZStoUSD(tariffPrice).then((usd) => {
+      if (usd) priceUSD.innerHTML = `$${usd}`;
+    });
+  }
+
+  /* =========================
+     SIGNUP SEND (ONE TIME)
+  ========================= */
+  sendSignupIfNeeded();
+
+  /* =========================
+     PAYMENT FORM SUBMIT
+     ✅ BU YERDA ENG MUHIM O'ZGARISH:
+     pendingSubmission GAS kutgan FORMATDA bo'ladi:
+     sheetName="Chek Yuborganlar"
+     imageUpload=true
+     checkUrlHeader="Check URL"
+     Ism, Telefon raqam, Tarif, Oferta, Sana, vaqt, file_data, file_filename, file_mime
+  ========================= */
+  const paymentForm = document.getElementById("paymentForm");
+  if (paymentForm) {
+    paymentForm.addEventListener("submit", async function (event) {
+      event.preventDefault();
+
+      const submitButton = this.querySelector(".payment__btn");
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = "Yuborilmoqda...";
+      }
+
+      try {
+        const localDataNow = getFormData();
+        const tariffNow = getSelectedTariff();
+
+        const name = localDataNow.name;
+        const phone = localDataNow.phone_number;
+
+        if (!name || !phone) {
+          alert("Ism yoki telefon raqami topilmadi. Iltimos, formani to‘ldiring.");
+          if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = "Davom etish";
+          }
+          return;
+        }
+
+        const form = new FormData(this);
+        const paymentType = form.get("status") || ""; // o'zingizda bor bo'lsa
+        const file = form.get("chek");
+
+        if (!file || file.size === 0) throw new Error("Chek rasmini yuklang");
+
+        const maxSize = 10 * 1024 * 1024;
+        if (file.size > maxSize) throw new Error("Fayl hajmi 10MB dan kichik bo‘lishi kerak");
+
+        const allowedTypes = ["image/png", "image/jpeg", "application/pdf"];
+        if (!allowedTypes.includes(file.type))
+          throw new Error("Faqat PNG, JPG yoki PDF fayllarni yuklash mumkin");
+
+        // localStorage meta update
+        setFormData({
+          payment_type: String(paymentType),
+          file_name: file.name,
+          last_submitted: new Date().toISOString(),
+          type: localDataNow.type || tariffNow.name,
+          price: Number(localDataNow.price || tariffNow.price),
+        });
+
+        // to base64
+        const toBase64 = (f) =>
+          new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = String(reader.result || "");
+              const commaIndex = result.indexOf(",");
+              const b64 = commaIndex >= 0 ? result.slice(commaIndex + 1) : result;
+              resolve({ b64, mime: f.type });
+            };
+            reader.onerror = (err) => reject(err);
+            reader.readAsDataURL(f);
+          });
+
+        const { b64, mime } = await toBase64(file);
+
+        const finalTariffName = localDataNow.type || tariffNow.name || "";
+
+        const { Sana, vaqt } = ensureSheetDateTime();
+
+        // ✅ GAS (imageUpload mode) uchun to'g'ri payload:
+        const payload = {
+          sheetName: "Chek Yuborganlar",
+          imageUpload: true,
+          checkUrlHeader: "Check URL",
+
+          Ism: String(name),
+          "Telefon raqam": String(phone),
+          Tarif: String(finalTariffName),
+
+          // Sheetsda "Roziman" chiqsin:
+          Oferta: String(localDataNow.offerta ? "Roziman" : ""),
+
+          // Siz ko'rsatgan sheet columnlari:
+          Sana: String(Sana),
+          vaqt: String(vaqt),
+
+          // file:
+          file_data: b64,
+          file_filename: file.name,
+          file_mime: mime,
+
+          // ixtiyoriy:
+          Status: String(paymentType || ""),
+        };
+
+        localStorage.setItem(PENDING_KEY, JSON.stringify(payload));
+
+        this.reset();
+
+        const uploadLabel = document.querySelector(".uploadCheck");
+        if (uploadLabel) uploadLabel.textContent = "Chek rasmini yuklash uchun bu yerga bosing";
+
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = "Davom etish";
+        }
+
+        window.location.href = "/thankYou.html";
+      } catch (err) {
+        console.error("Submit error:", err);
+        alert(`Xato yuz berdi: ${err.message || err}`);
+        const submitButton = document.querySelector(".payment__btn");
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = "Davom etish";
+        }
+      }
+    });
+  }
+
+  /* =========================
+     UPLOAD LABEL UI
+  ========================= */
+  const chekInput = document.getElementById("chek");
+  if (chekInput) {
+    chekInput.addEventListener("change", function () {
+      const file = this.files && this.files[0];
+      const uploadLabel = document.querySelector(".uploadCheck");
+      if (!uploadLabel) return;
+
+      if (!file) {
+        uploadLabel.textContent = "Chek rasmini yuklash uchun bu yerga bosing";
         return;
       }
 
       const maxSize = 10 * 1024 * 1024;
       if (file.size > maxSize) {
         alert("Fayl hajmi 10MB dan kichik bo‘lishi kerak");
-        submitButton.disabled = false;
-        submitButton.textContent = "Davom etish";
+        this.value = "";
+        uploadLabel.textContent = "Chek rasmini yuklash uchun bu yerga bosing";
         return;
       }
 
       const allowedTypes = ["image/png", "image/jpeg", "application/pdf"];
       if (!allowedTypes.includes(file.type)) {
         alert("Faqat PNG, JPG yoki PDF fayllarni yuklash mumkin");
-        submitButton.disabled = false;
-        submitButton.textContent = "Davom etish";
+        this.value = "";
+        uploadLabel.textContent = "Chek rasmini yuklash uchun bu yerga bosing";
         return;
       }
 
-      // update localStorage meta
-      const updatedLocalData = {
-        ...localData,
-        payment_type: String(paymentType),
-        file_name: file.name,
-        last_submitted: new Date().toISOString(),
-      };
-      localStorage.setItem("formData", JSON.stringify(updatedLocalData));
+      uploadLabel.textContent = file.name;
+    });
+  }
 
-      // convert file to base64 (DataURL) and strip prefix
-      const toBase64 = (f) =>
-        new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const result = reader.result; // data:<mime>;base64,<data>
-            const commaIndex = result.indexOf(",");
-            const b64 = commaIndex >= 0 ? result.slice(commaIndex + 1) : result;
-            resolve({ b64, mime: f.type });
-          };
-          reader.onerror = (err) => reject(err);
-          reader.readAsDataURL(f);
+  /* =========================
+     COPY BUTTONS
+  ========================= */
+  document.querySelectorAll(".copy").forEach((btn) => {
+    const originalHTML = btn.innerHTML;
+
+    const tickHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#2F80EC" class="size-8">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+      </svg>
+    `;
+
+    btn.addEventListener("click", () => {
+      const card = btn.closest(".payment__card");
+      const cardNumberEl = card?.querySelector(".payment__card-number");
+      const cardNumber = (cardNumberEl?.textContent || "").trim();
+
+      if (!cardNumber) {
+        alert("Karta raqami topilmadi");
+        return;
+      }
+
+      navigator.clipboard
+        .writeText(cardNumber)
+        .then(() => {
+          btn.innerHTML = tickHTML;
+          setTimeout(() => (btn.innerHTML = originalHTML), 1500);
+        })
+        .catch(() => {
+          alert("Nusxalashda xatolik yuz berdi!");
         });
-
-      const { b64, mime } = await toBase64(file);
-
-      // Build the payload the server expects (base64 approach)
-      const payload = {
-        sheetName: "Lead", // change if needed
-        imageUpload: true,
-        checkUrlHeader: "Check URL", // or your Uzbek label
-        Ism: localData.name.toString(),
-        "Telefon raqam": localData.phone_number.toString(),
-        Tarif: localData.type || "",
-        Status: String(paymentType || ""),
-        file_data: b64,
-        file_filename: file.name,
-        file_mime: mime,
-        createdAt: new Date().toISOString(),
-        Oferta: localData.offerta
-      };
-
-      // Save pending submission (stringified) — used by thankYou page
-      localStorage.setItem("pendingSubmission", JSON.stringify(payload));
-
-      // Try a non-blocking sendBeacon as an immediate best-effort (optional)
-      try {
-        if (navigator.sendBeacon) {
-          // sendBeacon expects ArrayBuffer, Blob, or FormData. We'll send FormData.
-          const fd = new FormData();
-          Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
-          // sendBeacon returns true if the user agent successfully queued the data
-          navigator.sendBeacon(SHEET_URL, fd);
-        }
-      } catch (e) {
-        // ignore — it's best-effort
-        console.warn("sendBeacon attempt failed:", e);
-      }
-
-      // Reset the form UI immediately and redirect to thank you page
-      this.reset();
-      document.querySelector(".uploadCheck").innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="54" height="66" viewBox="0 0 54 66">
-<g>
-<path d="M 3.86 63.09 C1.51,61.19 1.50,61.08 1.17,35.84 C0.80,8.16 1.33,4.08 5.54,2.16 C7.05,1.47 13.26,1.00 20.80,1.00 L 33.52 1.00 L 43.26 10.29 L 53.00 19.59 L 53.00 40.29 C53.00,59.67 52.87,61.13 51.00,63.00 C49.12,64.88 47.67,65.00 27.61,65.00 C8.05,65.00 6.02,64.84 3.86,63.09 ZM 49.96 60.07 C50.57,58.94 51.00,50.61 51.00,40.07 L 51.00 22.00 L 43.65 22.00 C33.94,22.00 32.65,20.71 32.65,10.98 L 32.65 4.00 L 19.36 4.00 C7.24,4.00 5.98,4.17 5.04,5.93 C3.49,8.82 3.64,59.24 5.20,60.80 C6.06,61.66 12.46,62.00 27.66,62.00 C47.67,62.00 48.99,61.88 49.96,60.07 ZM 41.70 12.22 L 35.00 5.52 L 35.00 11.14 C35.00,14.47 35.52,17.19 36.28,17.81 C37.43,18.77 46.86,19.90 47.95,19.21 C48.20,19.06 45.39,15.91 41.70,12.22 ZM 14.00 50.92 C14.00,48.08 14.38,46.97 15.25,47.27 C15.94,47.51 16.46,48.67 16.42,49.85 C16.34,51.92 16.73,52.00 27.17,52.00 L 38.00 52.00 L 38.00 49.50 C38.00,47.94 38.57,47.00 39.50,47.00 C40.58,47.00 41.00,48.11 41.00,51.00 L 41.00 55.00 L 27.50 55.00 L 14.00 55.00 L 14.00 50.92 ZM 26.00 37.83 L 26.00 31.65 L 23.68 33.83 C19.73,37.54 19.73,34.86 23.68,30.81 L 27.41 27.00 L 31.16 30.66 C35.19,34.59 35.40,37.67 31.39,33.90 L 29.00 31.65 L 29.00 37.83 C29.00,42.65 28.67,44.00 27.50,44.00 C26.33,44.00 26.00,42.65 26.00,37.83 Z" fill="rgba(0,0,0,1)"/>
-</g>
-</svg>
-        Chek rasmini yuklash uchun bu yerga bosing
-      `;
-      submitButton.disabled = false;
-      submitButton.textContent = "Davom etish";
-
-      // Redirect right away — thankYou page will take over sending in background
-      window.location.href = "/thankYou.html";
-    } catch (err) {
-      console.error("Submit error:", err);
-      alert(
-        `Xato yuz berdi: ${
-          err.message || err
-        }. Iltimos, keyinroq qayta urinib ko‘ring.`
-      );
-      const submitButton = document.querySelector(".payment__btn");
-      if (submitButton) {
-        submitButton.disabled = false;
-        submitButton.textContent = "Davom etish";
-      }
-    }
-  });
-
-// Update upload label when file selected
-document.getElementById("chek").addEventListener("change", function () {
-  const file = this.files[0];
-  const uploadLabel = document.querySelector(".uploadCheck");
-
-  if (file) {
-    const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      alert("Fayl hajmi 10MB dan kichik bo‘lishi kerak");
-      this.value = "";
-      uploadLabel.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="54" height="66" viewBox="0 0 54 66">
-<g>
-<path d="M 3.86 63.09 C1.51,61.19 1.50,61.08 1.17,35.84 C0.80,8.16 1.33,4.08 5.54,2.16 C7.05,1.47 13.26,1.00 20.80,1.00 L 33.52 1.00 L 43.26 10.29 L 53.00 19.59 L 53.00 40.29 C53.00,59.67 52.87,61.13 51.00,63.00 C49.12,64.88 47.67,65.00 27.61,65.00 C8.05,65.00 6.02,64.84 3.86,63.09 ZM 49.96 60.07 C50.57,58.94 51.00,50.61 51.00,40.07 L 51.00 22.00 L 43.65 22.00 C33.94,22.00 32.65,20.71 32.65,10.98 L 32.65 4.00 L 19.36 4.00 C7.24,4.00 5.98,4.17 5.04,5.93 C3.49,8.82 3.64,59.24 5.20,60.80 C6.06,61.66 12.46,62.00 27.66,62.00 C47.67,62.00 48.99,61.88 49.96,60.07 ZM 41.70 12.22 L 35.00 5.52 L 35.00 11.14 C35.00,14.47 35.52,17.19 36.28,17.81 C37.43,18.77 46.86,19.90 47.95,19.21 C48.20,19.06 45.39,15.91 41.70,12.22 ZM 14.00 50.92 C14.00,48.08 14.38,46.97 15.25,47.27 C15.94,47.51 16.46,48.67 16.42,49.85 C16.34,51.92 16.73,52.00 27.17,52.00 L 38.00 52.00 L 38.00 49.50 C38.00,47.94 38.57,47.00 39.50,47.00 C40.58,47.00 41.00,48.11 41.00,51.00 L 41.00 55.00 L 27.50 55.00 L 14.00 55.00 L 14.00 50.92 ZM 26.00 37.83 L 26.00 31.65 L 23.68 33.83 C19.73,37.54 19.73,34.86 23.68,30.81 L 27.41 27.00 L 31.16 30.66 C35.19,34.59 35.40,37.67 31.39,33.90 L 29.00 31.65 L 29.00 37.83 C29.00,42.65 28.67,44.00 27.50,44.00 C26.33,44.00 26.00,42.65 26.00,37.83 Z" fill="rgba(0,0,0,1)"/>
-</g>
-</svg>
-        Chek rasmini yuklash uchun bu yerga bosing
-      `;
-      return;
-    }
-
-    const allowedTypes = ["image/png", "image/jpeg", "application/pdf"];
-    if (!allowedTypes.includes(file.type)) {
-      alert("Faqat PNG, JPG yoki PDF fayllarni yuklash mumkin");
-      this.value = "";
-      uploadLabel.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="54" height="66" viewBox="0 0 54 66">
-<g>
-<path d="M 3.86 63.09 C1.51,61.19 1.50,61.08 1.17,35.84 C0.80,8.16 1.33,4.08 5.54,2.16 C7.05,1.47 13.26,1.00 20.80,1.00 L 33.52 1.00 L 43.26 10.29 L 53.00 19.59 L 53.00 40.29 C53.00,59.67 52.87,61.13 51.00,63.00 C49.12,64.88 47.67,65.00 27.61,65.00 C8.05,65.00 6.02,64.84 3.86,63.09 ZM 49.96 60.07 C50.57,58.94 51.00,50.61 51.00,40.07 L 51.00 22.00 L 43.65 22.00 C33.94,22.00 32.65,20.71 32.65,10.98 L 32.65 4.00 L 19.36 4.00 C7.24,4.00 5.98,4.17 5.04,5.93 C3.49,8.82 3.64,59.24 5.20,60.80 C6.06,61.66 12.46,62.00 27.66,62.00 C47.67,62.00 48.99,61.88 49.96,60.07 ZM 41.70 12.22 L 35.00 5.52 L 35.00 11.14 C35.00,14.47 35.52,17.19 36.28,17.81 C37.43,18.77 46.86,19.90 47.95,19.21 C48.20,19.06 45.39,15.91 41.70,12.22 ZM 14.00 50.92 C14.00,48.08 14.38,46.97 15.25,47.27 C15.94,47.51 16.46,48.67 16.42,49.85 C16.34,51.92 16.73,52.00 27.17,52.00 L 38.00 52.00 L 38.00 49.50 C38.00,47.94 38.57,47.00 39.50,47.00 C40.58,47.00 41.00,48.11 41.00,51.00 L 41.00 55.00 L 27.50 55.00 L 14.00 55.00 L 14.00 50.92 ZM 26.00 37.83 L 26.00 31.65 L 23.68 33.83 C19.73,37.54 19.73,34.86 23.68,30.81 L 27.41 27.00 L 31.16 30.66 C35.19,34.59 35.40,37.67 31.39,33.90 L 29.00 31.65 L 29.00 37.83 C29.00,42.65 28.67,44.00 27.50,44.00 C26.33,44.00 26.00,42.65 26.00,37.83 Z" fill="rgba(0,0,0,1)"/>
-</g>
-</svg>
-        Chek rasmini yuklash uchun bu yerga bosing
-      `;
-      return;
-    }
-
-    uploadLabel.innerHTML = `
-  <svg xmlns="http://www.w3.org/2000/svg" width="54" height="66" viewBox="0 0 54 66">
-<g>
-<path d="M 3.86 63.09 C1.51,61.19 1.50,61.08 1.17,35.84 C0.80,8.16 1.33,4.08 5.54,2.16 C7.05,1.47 13.26,1.00 20.80,1.00 L 33.52 1.00 L 43.26 10.29 L 53.00 19.59 L 53.00 40.29 C53.00,59.67 52.87,61.13 51.00,63.00 C49.12,64.88 47.67,65.00 27.61,65.00 C8.05,65.00 6.02,64.84 3.86,63.09 ZM 49.96 60.07 C50.57,58.94 51.00,50.61 51.00,40.07 L 51.00 22.00 L 43.65 22.00 C33.94,22.00 32.65,20.71 32.65,10.98 L 32.65 4.00 L 19.36 4.00 C7.24,4.00 5.98,4.17 5.04,5.93 C3.49,8.82 3.64,59.24 5.20,60.80 C6.06,61.66 12.46,62.00 27.66,62.00 C47.67,62.00 48.99,61.88 49.96,60.07 ZM 41.70 12.22 L 35.00 5.52 L 35.00 11.14 C35.00,14.47 35.52,17.19 36.28,17.81 C37.43,18.77 46.86,19.90 47.95,19.21 C48.20,19.06 45.39,15.91 41.70,12.22 ZM 14.00 50.92 C14.00,48.08 14.38,46.97 15.25,47.27 C15.94,47.51 16.46,48.67 16.42,49.85 C16.34,51.92 16.73,52.00 27.17,52.00 L 38.00 52.00 L 38.00 49.50 C38.00,47.94 38.57,47.00 39.50,47.00 C40.58,47.00 41.00,48.11 41.00,51.00 L 41.00 55.00 L 27.50 55.00 L 14.00 55.00 L 14.00 50.92 ZM 26.00 37.83 L 26.00 31.65 L 23.68 33.83 C19.73,37.54 19.73,34.86 23.68,30.81 L 27.41 27.00 L 31.16 30.66 C35.19,34.59 35.40,37.67 31.39,33.90 L 29.00 31.65 L 29.00 37.83 C29.00,42.65 28.67,44.00 27.50,44.00 C26.33,44.00 26.00,42.65 26.00,37.83 Z" fill="rgba(0,0,0,1)"/>
-</g>
-</svg>
-      ${file.name}
-    `;
-  } else {
-    uploadLabel.innerHTML = `
-  <svg xmlns="http://www.w3.org/2000/svg" width="54" height="66" viewBox="0 0 54 66">
-<g>
-<path d="M 3.86 63.09 C1.51,61.19 1.50,61.08 1.17,35.84 C0.80,8.16 1.33,4.08 5.54,2.16 C7.05,1.47 13.26,1.00 20.80,1.00 L 33.52 1.00 L 43.26 10.29 L 53.00 19.59 L 53.00 40.29 C53.00,59.67 52.87,61.13 51.00,63.00 C49.12,64.88 47.67,65.00 27.61,65.00 C8.05,65.00 6.02,64.84 3.86,63.09 ZM 49.96 60.07 C50.57,58.94 51.00,50.61 51.00,40.07 L 51.00 22.00 L 43.65 22.00 C33.94,22.00 32.65,20.71 32.65,10.98 L 32.65 4.00 L 19.36 4.00 C7.24,4.00 5.98,4.17 5.04,5.93 C3.49,8.82 3.64,59.24 5.20,60.80 C6.06,61.66 12.46,62.00 27.66,62.00 C47.67,62.00 48.99,61.88 49.96,60.07 ZM 41.70 12.22 L 35.00 5.52 L 35.00 11.14 C35.00,14.47 35.52,17.19 36.28,17.81 C37.43,18.77 46.86,19.90 47.95,19.21 C48.20,19.06 45.39,15.91 41.70,12.22 ZM 14.00 50.92 C14.00,48.08 14.38,46.97 15.25,47.27 C15.94,47.51 16.46,48.67 16.42,49.85 C16.34,51.92 16.73,52.00 27.17,52.00 L 38.00 52.00 L 38.00 49.50 C38.00,47.94 38.57,47.00 39.50,47.00 C40.58,47.00 41.00,48.11 41.00,51.00 L 41.00 55.00 L 27.50 55.00 L 14.00 55.00 L 14.00 50.92 ZM 26.00 37.83 L 26.00 31.65 L 23.68 33.83 C19.73,37.54 19.73,34.86 23.68,30.81 L 27.41 27.00 L 31.16 30.66 C35.19,34.59 35.40,37.67 31.39,33.90 L 29.00 31.65 L 29.00 37.83 C29.00,42.65 28.67,44.00 27.50,44.00 C26.33,44.00 26.00,42.65 26.00,37.83 Z" fill="rgba(0,0,0,1)"/>
-</g>
-</svg>
-      Chek rasmini yuklash uchun bu yerga bosing
-    `;
-  }
-});
-
-let timerElement = document.getElementById("timer");
-let time = timerElement.innerText.split(":");
-let minutes = parseInt(time[0], 10);
-let seconds = parseInt(time[1], 10);
-
-function updateTimer() {
-  if (seconds === 0) {
-    if (minutes === 0) {
-      clearInterval(timerInterval);
-      timerElement.innerText = "00:00";
-      // Bu yerga tugaganidan keyin nima bo'lishi kerakligini yoz
-      return;
-    }
-    minutes--;
-    seconds = 59;
-  } else {
-    seconds--;
-  }
-
-  let minStr = minutes < 10 ? "0" + minutes : minutes;
-  let secStr = seconds < 10 ? "0" + seconds : seconds;
-  timerElement.innerText = `${minStr}:${secStr}`;
-}
-
-let timerInterval = setInterval(updateTimer, 1000);
-
-document.querySelectorAll(".copy").forEach((btn) => {
-  // Store the original SVG
-  const originalSVG = btn.innerHTML;
-
-  // Define the tick SVG
-  const tickSVG = `
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#2F80EC" class="size-8">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-    </svg>
-  `;
-
-  btn.addEventListener("click", () => {
-    // Find the card number from the closest .payment__card element
-    const cardNumber = btn
-      .closest(".payment__card")
-      .querySelector(".payment__card-number")
-      .textContent.trim();
-
-    // Copy to clipboard
-    navigator.clipboard
-      .writeText(cardNumber)
-      .then(() => {
-        // Show success message
-
-        // Change to tick SVG
-        btn.innerHTML = tickSVG;
-
-        // Revert to original SVG after 1.5 seconds
-        setTimeout(() => {
-          btn.innerHTML = originalSVG;
-        }, 1500);
-      })
-      .catch((err) => {
-        // Show error message
-        alert("Nusxalashda xatolik yuz berdi!");
-        console.error(err);
-      });
+    });
   });
 });

@@ -1,233 +1,196 @@
-document.addEventListener("DOMContentLoaded", () => {
-  // 🔹 Read formData from localStorage
-  let formData = null;
+const SHEET_URL =
+  "https://script.google.com/macros/s/AKfycbwAXo7LcO-serC4G4P18LNMdTE2r_pfvhz9kaQ9YDQpK_9MdzvExvSKkQzvBekgAbEW/exec";
 
+const PENDING_KEY = "pendingSubmission";
+
+let retryTimer = null;
+let retryAttempts = 0;
+
+const MAX_RETRIES = 12;
+const BASE_DELAY_MS = 2000;
+
+function safeJSONParse(str, fallback = null) {
   try {
-    const raw = localStorage.getItem("formData");
-    if (raw) {
-      formData = JSON.parse(raw);
-    }
-  } catch (e) {
-    console.error("Error parsing formData from localStorage:", e);
+    return JSON.parse(str);
+  } catch {
+    return fallback;
+  }
+}
+
+function ensureDateTime(payload) {
+  // Sana: YYYY-MM-DD, vaqt: HH:MM:SS
+  const now = new Date();
+  const Sana = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+    now.getDate()
+  ).padStart(2, "0")}`;
+  const vaqt = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(
+    2,
+    "0"
+  )}:${String(now.getSeconds()).padStart(2, "0")}`;
+
+  if (!payload.Sana) payload.Sana = Sana;
+  if (!payload.vaqt) payload.vaqt = vaqt;
+
+  return payload;
+}
+
+/**
+ * ✅ CORS-FREE SENDER
+ * hidden iframe + form submit
+ * GAS doPost => e.parameter orqali payload oladi.
+ */
+function postFormNoCors(payloadObj) {
+  return new Promise((resolve) => {
+    const frameName = "gas_iframe_" + Date.now();
+
+    const iframe = document.createElement("iframe");
+    iframe.name = frameName;
+    iframe.style.display = "none";
+
+    const form = document.createElement("form");
+    form.action = SHEET_URL;
+    form.method = "POST";
+    form.target = frameName;
+    form.enctype = "application/x-www-form-urlencoded";
+
+    Object.entries(payloadObj).forEach(([k, v]) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = k;
+      input.value = String(v ?? "");
+      form.appendChild(input);
+    });
+
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+
+      setTimeout(() => {
+        try { form.remove(); } catch {}
+        try { iframe.remove(); } catch {}
+      }, 1000);
+
+      resolve(true); // browser response'ni o‘qiyolmaymiz, ammo request jo‘nadi
+    };
+
+    iframe.addEventListener("load", finish);
+
+    document.body.appendChild(iframe);
+    document.body.appendChild(form);
+
+    form.submit();
+
+    // Fallback: load bo‘lmasa ham 4s dan keyin finish
+    setTimeout(finish, 4000);
+  });
+}
+
+// Retry scheduler (optimistic)
+function scheduleRetry(payload) {
+  if (retryAttempts >= MAX_RETRIES) {
+    console.error("Max retries reached — stopping.");
+    const el = document.getElementById("thankYouMessage");
+    if (el)
+      el.textContent =
+        "Internet muammo bo‘lyapti. Keyinroq sahifani qayta oching (ma’lumot yo‘qolmagan).";
+    return;
   }
 
-  // 🔹 Select DOM elements
+  const delay = Math.min(60000, BASE_DELAY_MS * Math.pow(1.8, retryAttempts));
+  retryAttempts++;
+
+  retryTimer = setTimeout(async () => {
+    const ok = await postFormNoCors(payload);
+    if (ok) cleanupSuccess();
+    else scheduleRetry(payload);
+  }, delay);
+}
+
+function cleanupSuccess() {
+  clearTimeout(retryTimer);
+  retryTimer = null;
+  retryAttempts = 0;
+
+  // Optimistic: form submit ketdi -> pending'ni tozalaymiz
+  localStorage.removeItem(PENDING_KEY);
+  console.log("✅ Sent (form submit). pendingSubmission cleared.");
+
+  const el = document.getElementById("thankYouMessage");
+  if (el) el.textContent = "Rahmat! Sizning ma'lumot qabul qilindi.";
+}
+
+async function trySendAndMaybeRetry() {
+  const raw = localStorage.getItem(PENDING_KEY);
+  const msg = document.getElementById("thankYouMessage");
+
+  if (!raw) {
+    console.log("No pending submission found.");
+    if (msg) msg.textContent = "Rahmat! (Yuboriladigan ma’lumot topilmadi)";
+    return;
+  }
+
+  let payload = safeJSONParse(raw, null);
+  if (!payload || typeof payload !== "object") {
+    console.error("Invalid pendingSubmission JSON.");
+    localStorage.removeItem(PENDING_KEY);
+    if (msg) msg.textContent = "Xato: pendingSubmission buzilgan (tozalandi).";
+    return;
+  }
+
+  payload = ensureDateTime(payload);
+
+  // UI preview
   const ismEl = document.querySelector(".ism");
   const telEl = document.querySelector(".tel");
   const tarifEl = document.querySelector(".tarif");
   const sanEl = document.querySelector(".san");
 
-  // Debug (optional)
-  console.log("formData:", formData);
+  if (ismEl) ismEl.textContent = payload.Ism || "—";
+  if (telEl) telEl.textContent = payload["Telefon raqam"] || "—";
+  if (tarifEl) tarifEl.textContent = payload.Tarif || "—";
+  if (sanEl) sanEl.textContent = `${payload.Sana || ""} ${payload.vaqt || ""}`.trim();
 
-  // 🔹 Set date/time: dd/mm/yyyy hh:mm:ss
-  if (sanEl) {
-    const now = new Date();
+  // retrylar bir xil Sana/vaqt bilan ketishi uchun qayta saqlaymiz
+  localStorage.setItem(PENDING_KEY, JSON.stringify(payload));
 
-    const pad = (n) => n.toString().padStart(2, "0");
+  if (msg) msg.textContent = "Rahmat! Ma'lumot yuborilmoqda...";
 
-    const day = pad(now.getDate());
-    const month = pad(now.getMonth() + 1); // 0-based
-    const year = now.getFullYear();
-    const hours = pad(now.getHours());
-    const minutes = pad(now.getMinutes());
-    const seconds = pad(now.getSeconds());
-
-    const formatted = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
-    sanEl.textContent = formatted;
-  }
-
-  // 🔹 If no formData – stop here (leave placeholders)
-  if (!formData) {
-    console.warn("formData not found in localStorage");
-    return;
-  }
-
-  if (!ismEl || !telEl || !tarifEl) {
-    console.error("One or more required elements (.ism, .tel, .tarif) not found");
-    return;
-  }
-
-  // 🔹 Fill values from formData
-  //  formData structure expected:
-  //  { name: "...", phone_number: "...", type: "..." }
-
-  ismEl.textContent = formData.name || "—";
-  telEl.textContent = formData.phone_number || "—";
-  tarifEl.textContent = formData.type || "—";
-});
-
-
-
-const SHEET_URL =
-  "https://script.google.com/macros/s/AKfycbyS2qxi3KQoGJwp1EywB8MRoFKDBCJZmpuHWVW4ehuWmSgE95mn3OJ5nSES4hU1YGYf/exec";
-const PENDING_KEY = "pendingSubmission";
-let retryTimer = null;
-let retryAttempts = 0;
-const MAX_RETRIES = 12; // e.g., ~12 attempts (with backoff)
-const BASE_DELAY_MS = 2000; // 2s base
-
-// Utility: convert JS payload to FormData (Apps Script expects form payload)
-function payloadToFormData(payloadObj) {
-  const fd = new FormData();
-  Object.entries(payloadObj).forEach(([k, v]) => {
-    // ensure strings
-    fd.append(k, typeof v === "string" ? v : JSON.stringify(v));
-  });
-  return fd;
-}
-
-// Try to send once using fetch (returns true if server says ok)
-async function sendOnce(payload) {
-  try {
-    const fd = payloadToFormData(payload);
-    const resp = await fetch(SHEET_URL, {
-      method: "POST",
-      body: fd,
-    });
-
-    if (!resp.ok) {
-      // try to parse body as text/json for debug
-      let text = await resp.text();
-      try { text = JSON.parse(text); } catch (e) {}
-      console.warn("Server returned error:", resp.status, text);
-      return false;
-    }
-
-    // success
-    return true;
-  } catch (e) {
-    console.warn("Network/send error:", e);
-    return false;
-  }
-}
-
-// Fallback: use navigator.sendBeacon with FormData or Blob (best-effort)
-function sendBeaconFallback(payload) {
-  try {
-    if (!navigator.sendBeacon) return false;
-    const fd = payloadToFormData(payload);
-    // sendBeacon returns true if queued
-    return navigator.sendBeacon(SHEET_URL, fd);
-  } catch (e) {
-    console.warn("sendBeacon failed:", e);
-    return false;
-  }
-}
-
-// Exponential backoff scheduler
-function scheduleRetry(payload) {
-  if (retryAttempts >= MAX_RETRIES) {
-    console.error("Max retries reached — will stop trying.");
-    return;
-  }
-  const delay = Math.min(60000, BASE_DELAY_MS * Math.pow(1.8, retryAttempts)); // cap 60s
-  retryAttempts++;
-  retryTimer = setTimeout(async () => {
-    const ok = await sendOnce(payload);
-    if (ok) {
-      cleanupSuccess();
-    } else {
-      scheduleRetry(payload);
-    }
-  }, delay);
-}
-
-// Cleanup on success
-function cleanupSuccess() {
-  clearTimeout(retryTimer);
-  localStorage.removeItem(PENDING_KEY);
-  retryAttempts = 0;
-  retryTimer = null;
-  console.log("Submission successful — cleared pendingSubmission.");
-  // optionally update UI: show final success message
-  const el = document.getElementById("thankYouMessage");
-  if (el) el.textContent = "Rahmat! Sizning ma'lumot qabul qilindi.";
-}
-
-// Try to send now; returns true if success
-// Try to send now; returns true if success
-async function trySendAndMaybeRetry() {
-  const raw = localStorage.getItem(PENDING_KEY);
-  if (!raw) {
-    console.log("No pending submission found.");
-    return;
-  }
-
-  let payload;
-  try {
-    payload = JSON.parse(raw);
-  } catch (e) {
-    console.error("Invalid pending payload JSON:", e);
-    localStorage.removeItem(PENDING_KEY);
-    return;
-  }
-
-  // ✅ Add send date & time (once) before sending
-  if (!payload.sana || !payload.vaqt) {
-    const now = new Date();
-
-    // Sana: 18.11.2025 kabi
-    const sentDate = now.toLocaleDateString("uz-UZ"); 
-
-    // Soat: 21:34:10 kabi (24 soat format)
-    const sentTime = now.toLocaleTimeString("uz-UZ", {
-      hour12: false,
-    });
-
-    payload.sana = sentDate;
-    payload.vaqt = sentTime;
-
-    // ✅ Update localStorage so retries use the same timestamp
-    localStorage.setItem(PENDING_KEY, JSON.stringify(payload));
-  }
-
-  // First quick attempt with fetch
-  const ok = await sendOnce(payload);
+  // 1) attempt (CORS-free)
+  const ok = await postFormNoCors(payload);
   if (ok) {
     cleanupSuccess();
     return;
   }
 
-  // If fetch failed, schedule retries and rely on sendBeacon on unload
+  // 2) retry
   scheduleRetry(payload);
 }
 
-// When page is hidden or unloaded, try sendBeacon as last chance
+// page chiqayotganda ham yuborishga urinib ko‘ramiz
 function onPageHideOrUnload() {
   const raw = localStorage.getItem(PENDING_KEY);
   if (!raw) return;
-  let payload;
-  try { payload = JSON.parse(raw); } catch (e) { return; }
 
-  // Try sendBeacon
-  const beaconOk = sendBeaconFallback(payload);
-  if (beaconOk) {
-    // If beacon queued, we can remove the pending item.
-    localStorage.removeItem(PENDING_KEY);
-    console.log("Queued pendingSubmission via sendBeacon and cleared local copy.");
-  } else {
-    console.warn("sendBeacon not available or failed — pendingSubmission remains for retry.");
-  }
+  const payload = safeJSONParse(raw, null);
+  if (!payload) return;
+
+  // best-effort: form submit quick
+  try {
+    postFormNoCors(payload);
+  } catch {}
 }
 
-// Run on load
 window.addEventListener("DOMContentLoaded", () => {
-  // show a friendly message
   const el = document.getElementById("thankYouMessage");
-  if (el) el.textContent = "Rahmat! Sizning ma'lumot qabul qilinishi uchun jarayon boshlanmoqda...";
+  if (el) el.textContent = "Rahmat! Ma'lumot yuborilmoqda...";
 
-  // Try to send immediately
   trySendAndMaybeRetry().catch((e) => console.error("Initial send error:", e));
 });
 
-// When tab becomes hidden -> try to send via beacon (best-effort)
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "hidden") {
-    onPageHideOrUnload();
-  }
+  if (document.visibilityState === "hidden") onPageHideOrUnload();
 });
 
-// Also handle pagehide (more reliable in some browsers)
 window.addEventListener("pagehide", onPageHideOrUnload);
 window.addEventListener("beforeunload", onPageHideOrUnload);

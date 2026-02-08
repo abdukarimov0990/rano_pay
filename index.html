@@ -1,77 +1,352 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uz">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tolov sahifasi</title>
-  <link rel="preconnect" href="https://connect.facebook.net" crossorigin>
+  <title>Ra'no Mo'minova</title>
+
   <style>
-   * {margin: 0;padding: 0;box-sizing: border-box }body {font-family: MontserratNormal, sans-serif }.main {background-image: radial-gradient(circle, #e50909, #ce1414, #b81616, #a21616, #8c1212, #7f0f0f, #720b0b, #660707, #5e0707, #560808, #4f0909, #470a0a);padding: 40px 0 106px }.main-container {max-width: 500px;margin: 0 auto;padding: 0 20px }.main-plan {background: #fff;border-radius: 30px;padding: 2px 2px 30px }.plan-header {background: #001c1c;padding: 20px 31px;border-radius: 30px 30px 0 0;margin-bottom: 24px }.line {margin: 0 auto;display: flex;object-fit: contain;width: 80%;filter: invert(1) }.plan-header-bottom {display: flex;justify-content: space-between;max-width: 335px;margin: 0 auto }.plan-header-bottom-text {font-family: MontserratSemiBold, sans-serif;font-weight: 600;font-size: 15px;text-align: center;color: #fff }.plan-header-bottom-text:nth-child(2) {margin-left: 20px }.plan-title {font-family: MontserratBold, sans-serif;font-weight: 700;font-size: 16px;text-align: center;text-transform: uppercase;line-height: 100%;padding: 20px;background: #0d0d0d;border-radius: 8px;color: #fff;max-width: 420px;margin: 0 auto }.plan-date {font-family: MontserratNormal, sans-serif;font-size: 18px;text-align: center;margin-bottom: 11px;font-weight: 400 }b {font-family: MontserratBold, sans-serif;font-weight: 700 }.plan-description {font-family: MontserratBold, sans-serif;text-align: center;font-size: 16px;font-weight: 700;margin: 0 auto 10px }.center {padding: 0 20px }.plan-select-now {text-align: center;font-family: MontserratNormal, sans-serif;font-size: 12px;font-weight: 400;margin-bottom: 5px }.form {display: grid;grid-template-columns: 1fr;gap: 12px }.form__col {display: grid;grid-template-columns: 1fr }.label {font-family: MontserratSemiBold, sans-serif;font-size: 16px;margin-bottom: 2px }.input {padding: 8px 12px;border-radius: 10px;border: 1px solid #000;outline: none;font-size: 18px }.plan-list-btn {font-family: MontserratSemiBold, sans-serif;width: 100%;text-align: center;background: #12a3a3;border: 1px solid #12a3a3;padding: 9px 31px;border-radius: 8px;font-size: 18px;font-weight: 600;color: #fff;cursor: pointer;transition: all .3s;text-transform: uppercase }footer {background: #000;padding: 40px 0;color: #fff;text-align: center }.footer-container {max-width: 384px;margin: 0 auto;padding: 20px;display: flex;flex-direction: column;justify-content: center;gap: 20px }.footer-title {font-family: MontserratMedium, sans-serif;font-weight: 500;font-size: 16px;line-height: 1.5;text-align: center }.footer__number {padding: 0 8px;border: 1px solid #fff;max-width: 160px;margin: 0 auto;border-radius: 10px;font-family: MontserratNormal, sans-serif;font-size: 16px;color: #fff;text-decoration: none }.footer__link-telegram {background: #d1444e;padding: 8px 12px;border-radius: 10px;max-width: 289px;display: flex;align-items: center;gap: 20px;font-family: MontserratNormal, sans-serif;font-size: 16px;color: #fff;text-decoration: none;margin: 0 auto }.dropdown {width: fit-content }.dropdown__toggle {display: flex;align-items: center;justify-content: space-between;gap: 8px;cursor: pointer;padding: 10px 12px;border-radius: 10px;border: 1px solid #e6e7eb;background: #fff;user-select: none;min-height: 44px;}.selected-code {font-weight: 700 }.chev {width: 18px;height: 18px;display: inline-block;transition: transform .18s ease;opacity: .8 }.chev.open {transform: rotate(180deg);opacity: 1 }.dropdown__list {position: absolute;top: calc(100% + 8px);left: 0;width: 100%;background: #fff;border: 1px solid #e6e7eb;border-radius: 10px;box-shadow: 0 12px 30px rgba(12, 18, 31, 0.08);max-height: 215px;overflow: auto;z-index: 120;display: none;padding: 6px;}.dropdown__list.open {display: block }.dropdown__item {display: flex;justify-content: space-between;align-items: center;padding: 8px 10px;border-radius: 8px;cursor: pointer;font-size: 14px;color: #111;}.dropdown__item:hover {background: #f4f7ff }.dropdown__item[aria-selected="true"] {background: #eef6ff;font-weight: 700 }.country-name {white-space: nowrap;overflow: hidden;text-overflow: ellipsis;padding-right: 8px }.country-code {opacity: .9;font-weight: 700 }.phone-wrap {display: flex;gap: 10px;align-items: center;position: relative;}#localPhone {flex: 1;min-width: 160px }.hint {color: #6b7280;font-size: 13px;margin-top: 8px;display: block }.whatsapp_info{display: flex;align-items: center; gap: 10px;padding: 15px 0px 15px 20px; border: 1px dashed black;border-radius: 100px;margin-top: 15px;}.whatsapp_info__text{font-size: clamp(10px, 3vw, 12px); color: #474343;}
+    * {margin: 0;padding: 0;box-sizing: border-box;}
+    body, html {overflow-x: hidden;}
+    .date {padding-top: 27px;}
+    .dates {padding-bottom: 45px;}
+    .date__container {max-width: 490px;margin: 0 auto;padding: 0 10px;position: relative;}
+    .date__top {display: flex;align-items: center;justify-content: center;gap: 20px;margin-bottom: 12px;}
+    .date__top-min {background-color: #868686;border-radius: 10px;padding: 8px 10px;display: flex;align-items: center;gap: 5px;color: white;}
+    .date__top-min svg {max-width: 12px;width: 100%;height: auto;}
+    .date__top-text, .date__top-min, .date__top-min span {color: #fff;}
+    .date__top-text {font-family: Poppins, sans-serif;font-weight: 500;font-size: clamp(13px, 3.8vw, 14px);line-height: 100%;text-align: center;color: white;margin-bottom: -1px;}
+    .date__title {font-family: Kuunari, sans-serif;font-weight: 700;font-size: clamp(31px, 9.9vw, 42px);line-height: 120%;text-align: center;text-transform: uppercase;color: #F00202;}
+    .date__subtitle {font-family: Kuunari, sans-serif;font-weight: 700;font-size: clamp(27px, 8.5vw, 38px);line-height: 120%;text-align: center;text-transform: uppercase;margin-bottom: 8px;}
+    .date__subtitle span {color: #F00202;}
+    .date__text {font-family: Poppins, sans-serif;font-weight: 400;font-size: clamp(10.5px, 3.3vw, 14px);line-height: 125%;text-align: center;margin-bottom: 3px;}
+    .date__text span {font-size: clamp(13.5px, 4.4vw, 18px);color: #0f5f52;font-weight: 700;font-style: italic;}
+    .date__text-span {font-size: clamp(13.5px, 4.4vw, 18px);color: #198676;}
+    .timer {font-family: Kuunari, sans-serif;font-weight: 900;font-size: 34px;line-height: 135%;text-align: center;margin-bottom: 8px;padding-top: 89px;}
+    .date__line {display: flex;margin-left: auto;margin-right: auto;max-width: 418px;width: 100%;}
+    .date__images {max-width: clamp(260px, 82vw, 274px);width: 100%;height: auto;margin-left: auto;margin-right: auto;display: flex;}
+    .date__info-line img {position: absolute;top: 33px;left: 50%;transform: translateX(-50%);}
+    .date__info {background-color: white;border-radius: 10px;padding: 7px 13px;border: 1.5px solid #A40000;box-shadow: 2px 2px 0px 0px #A40000;max-width: 290px;width: 100%;text-align: center;position: absolute;top: 68%;gap: 20px;height: 65px;left: 53%;transform: translateX(-50%);}
+    .date__info-title {font-family: Poppins, sans-serif;font-weight: 600;font-size: clamp(16px, 5.4vw, 18px);line-height: 120%;text-align: center;margin-bottom: 10px;}
+    .date__info-text {font-family: Poppins, sans-serif;font-weight: 400;font-size: clamp(11px, 3.5vw, 12px);line-height: 120%;text-align: center;}
+    .date__btn {background: linear-gradient(90deg, #4794FF 0%, #60A2FF 50.96%, #4794FF 100%);box-shadow: 0px 6px 0px 0px #3973C4;box-shadow: 0px 8px 25px 0px #4794FF80;border-radius: 100px;padding: 35px 0;font-family: Poppins, sans-serif;text-transform: uppercase;font-weight: 600;font-size: clamp(18px, 5.5vw, 22px);line-height: 120%;text-align: center;color: white;cursor: pointer;border: none;max-width: 428px;width: 100%;margin-top: -20px;position: absolute;display: flex;justify-content: center;left: 50%;transform: translateX(-50%);z-index: 20;}
+    .date__btns {background: linear-gradient(90deg, #4794FF 0%, #60A2FF 50.96%, #4794FF 100%);box-shadow: 0px 6px 0px 0px #3973C4;box-shadow: 0px 8px 25px 0px #4794FF80;border-radius: 100px;padding: 35px 0;font-family: Poppins, sans-serif;text-transform: uppercase;font-weight: 600;font-size: clamp(18px, 5.5vw, 22px);line-height: 120%;text-decoration: none;text-align: center;color: white;cursor: pointer;border: none;max-width: 368px;width: 100%;margin-top: -20px;position: absolute;display: flex;justify-content: center;left: 50%;transform: translateX(-50%);z-index: 20;}
+    .wistia-wrap {width: 100%;min-height: 435px;max-width: 280px;margin: 0 auto;}
+    .wistia-wrap wistia-player {display: block;width: 100%;border-radius: 14px;overflow: hidden;}
+    .wistia-wrap wistia-player:not(:defined) {display: block;width: 100%;padding-top: var(--ratio);background: #111;}
+    @media (max-width:400px) {.date__info {top: 66%;}.date {padding-top: 15px;}.date__btn {max-width: 360px;}}
+    @media (max-width:340px) {.date__info {max-width: 260px;padding: 6px 10px;top: 65%;}.date__btn {max-width: 310px;margin-top: -21px;}}
   </style>
-  <link rel="stylesheet" href="./css/index.css" media="print" onload="this.media='all'">
+
+  <link rel="stylesheet" href="./css/main.css" media="print" onload="this.media='all'" />
+  <noscript>
+    <link rel="stylesheet" href="./css/main.css" />
+  </noscript>
 </head>
+
 <body>
-  <section class="main">
-    <div class="main-container">
-      <div class="main-plan">
-        <div class="plan-header">
-          <img alt="Supermiya" class="line" src="./images/line.webp" width="335" height="28" loading="lazy">
-          <div class="plan-header-bottom">
-            <p class="plan-header-bottom-text">Ma'lumot <br> kiritish</p>
-            <p class="plan-header-bottom-text">To'lov <br> qilish</p>
-            <p class="plan-header-bottom-text">Yakunlash</p>
+  <main>
+    <section class="date">
+      <div class="date__container">
+        <div class="date__top">
+          <div class="date__top-min">
+            <svg width="13" height="15" viewBox="0 0 13 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" clip-rule="evenodd"
+                d="M3.8147e-06 6.39909C3.8147e-06 2.86495 2.86496 0 6.39909 0C9.93323 0 12.7982 2.86495 12.7982 6.39909C12.7982 8.69207 11.615 10.6209 10.3285 12.0443C9.03805 13.4723 7.59612 14.4452 6.96897 14.8357C6.61719 15.0548 6.181 15.0548 5.82921 14.8357C5.20207 14.4452 3.76014 13.4723 2.46966 12.0443C1.18321 10.6209 3.8147e-06 8.69207 3.8147e-06 6.39909ZM6.39909 9.02436C7.849 9.02436 9.02436 7.84899 9.02436 6.39909C9.02436 4.94919 7.849 3.77382 6.39909 3.77382C4.94919 3.77382 3.77383 4.94919 3.77383 6.39909C3.77383 7.84899 4.94919 9.02436 6.39909 9.02436Z"
+                fill="white" />
+            </svg>
+            <p class="date__top-text">Online</p>
+          </div>
+          <div class="date__top-min">
+            <svg width="14" height="15" viewBox="0 0 14 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M4.15941 6.23913H3.56521C3.40762 6.23913 3.25648 6.30174 3.14505 6.41317C3.03361 6.5246 2.97101 6.67574 2.97101 6.83333C2.97101 6.99093 3.03361 7.14206 3.14505 7.2535C3.25648 7.36493 3.40762 7.42754 3.56521 7.42754H4.15941C4.31701 7.42754 4.46814 7.36493 4.57958 7.2535C4.69101 7.14206 4.75362 6.99093 4.75362 6.83333C4.75362 6.67574 4.69101 6.5246 4.57958 6.41317C4.46814 6.30174 4.31701 6.23913 4.15941 6.23913Z"
+                fill="white" />
+              <path
+                d="M7.13042 6.23913H6.53622C6.37863 6.23913 6.22749 6.30174 6.11605 6.41317C6.00462 6.5246 5.94202 6.67574 5.94202 6.83333C5.94202 6.99093 6.00462 7.14206 6.11605 7.2535C6.22749 7.36493 6.37863 7.42754 6.53622 7.42754H7.13042C7.28801 7.42754 7.43915 7.36493 7.55059 7.2535C7.66202 7.14206 7.72463 6.99093 7.72463 6.83333C7.72463 6.67574 7.66202 6.5246 7.55059 6.41317C7.43915 6.30174 7.28801 6.23913 7.13042 6.23913Z"
+                fill="white" />
+              <path
+                d="M10.1015 6.23913H9.50726C9.34967 6.23913 9.19853 6.30174 9.08709 6.41317C8.97566 6.5246 8.91306 6.67574 8.91306 6.83333C8.91306 6.99093 8.97566 7.14206 9.08709 7.2535C9.19853 7.36493 9.34967 7.42754 9.50726 7.42754H10.1015C10.2591 7.42754 10.4102 7.36493 10.5216 7.2535C10.6331 7.14206 10.6957 6.99093 10.6957 6.83333C10.6957 6.67574 10.6331 6.5246 10.5216 6.41317C10.4102 6.30174 10.2591 6.23913 10.1015 6.23913Z"
+                fill="white" />
+              <path
+                d="M12.4783 1.78261H10.8442C10.8048 1.78261 10.767 1.76696 10.7392 1.7391C10.7113 1.71124 10.6957 1.67346 10.6957 1.63406V0.594203C10.6957 0.436611 10.633 0.285473 10.5216 0.174038C10.4102 0.0626034 10.259 0 10.1014 0C9.94386 0 9.79272 0.0626034 9.68128 0.174038C9.56985 0.285473 9.50725 0.436611 9.50725 0.594203V3.41667C9.50725 3.53486 9.46029 3.64821 9.37672 3.73179C9.29314 3.81537 9.17979 3.86232 9.06159 3.86232C8.9434 3.86232 8.83005 3.81537 8.74647 3.73179C8.6629 3.64821 8.61594 3.53486 8.61594 3.41667V2.07971C8.61594 2.00091 8.58464 1.92535 8.52892 1.86963C8.47321 1.81391 8.39764 1.78261 8.31884 1.78261H4.60507C4.56567 1.78261 4.52789 1.76696 4.50003 1.7391C4.47217 1.71124 4.45652 1.67346 4.45652 1.63406V0.594203C4.45652 0.436611 4.39392 0.285473 4.28248 0.174038C4.17105 0.0626034 4.01991 0 3.86232 0C3.70473 0 3.55359 0.0626034 3.44215 0.174038C3.33072 0.285473 3.26812 0.436611 3.26812 0.594203V3.41667C3.26812 3.53486 3.22116 3.64821 3.13759 3.73179C3.05401 3.81537 2.94066 3.86232 2.82246 3.86232C2.70427 3.86232 2.59092 3.81537 2.50734 3.73179C2.42376 3.64821 2.37681 3.53486 2.37681 3.41667V2.07971C2.37681 2.00091 2.34551 1.92535 2.28979 1.86963C2.23408 1.81391 2.15851 1.78261 2.07971 1.78261H1.18841C0.873221 1.78261 0.570945 1.90782 0.348076 2.13068C0.125207 2.35355 0 2.65583 0 2.97101V13.0725C0 13.3876 0.125207 13.6899 0.348076 13.9128C0.570945 14.1357 0.873221 14.2609 1.18841 14.2609H12.4783C12.7934 14.2609 13.0957 14.1357 13.3186 13.9128C13.5415 13.6899 13.6667 13.3876 13.6667 13.0725V2.97101C13.6667 2.65583 13.5415 2.35355 13.3186 2.13068C13.0957 1.90782 12.7934 1.78261 12.4783 1.78261Z"
+                fill="white" />
+            </svg>
+            <p class="date__top-text">15 kun davomida</p>
           </div>
         </div>
-        <div class="center">
-          <h2 class="plan-title">  barakali ayol marafoni  </h2>
-          <p class="plan-date">13-14-Dekabr offline | 15-dekabr online </p>
-          <p class="plan-description">Ra'no Mo'minova bilan saodatli ayol bo'ling va baxtli hayotda yashang!</p>
-          <p class="plan-select-now">Hoziroq formani to'ldiring va bonuslarga ega bo'ling</p>
-          <form id="form" class="form" novalidate>
-            <div class="form__col">
-              <label class="label" for="name">Ism familiyangiz:</label>
-              <input id="name" name="Ism" class="input" autocomplete="name" />
+
+        <h1 class="date__title">barakali ayol marafoni</h1>
+        <h2 class="date__subtitle">Ra'no mo'minova bilan <br> <span>ramazonni</span> birga o'tkazing!</h2>
+
+        <p class="date__text">
+          Atigi <span>99 000 so'm</span> evaziga online marafonda ishtirok <br>
+          eting va amaliy bilimlarni qo'lga kiriting
+        </p>
+
+        <img class="date__line" src="./images/line.avif" width="418" height="5" loading="lazy" decoding="async" alt="arrow">
+
+        <div class="date__info">
+          <h2 class="date__info-title">Ra'no Mo'minova</h2>
+          <div class="date__info-line" style="padding-top: 4px;">
+            <img src="./images/liness.png" loading="lazy" decoding="async" alt="line">
+          </div>
+          <p class="date__info-text">5 yillik tajriba | Psixolog <span style="margin-left: 12px;"></span> 3 0000+ mijozlar</p>
+        </div>
+
+        <img class="date__images" src="./images/speaker.avif" loading="lazy" decoding="async" width="274" height="345" alt="Ra'no Mo'minova">
+
+        <a href="#tarif" style="text-decoration: none;" class="date__btn">Marafonda qatnashish >>></a>
+
+        <div class="timer" id="timer">2:00</div>
+      </div>
+    </section>
+
+    <section class="about">
+      <div class="container about__container">
+        <h2 class="about__title"> Kurs kimlar uchun? </h2>
+
+        <div class="about__list">
+          <div class="about__list__item">
+            <div class="about__list__item__img-wrapper">
+              <img src="./images/learn/1.avif" loading="lazy" decoding="async" width="249" height="143" alt="images">
             </div>
-            <div class="form__col">
-              <label class="label">Telefon raqamingiz:</label>
-              <div class="row phone-wrap">
-                <!-- custom dropdown (rendered from array) -->
-                <div class="dropdown" id="countryDropdown" aria-haspopup="listbox">
-                  <div id="dropdownToggle" class="dropdown__toggle" role="button" tabindex="0" aria-expanded="false"
-                    aria-controls="dropdownList">
-                    <span class="selected-code" id="selectedCode">+998</span>
-                    <svg class="chev" id="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                  </div>
-                  <div id="dropdownList" class="dropdown__list" role="listbox" tabindex="-1" aria-label="Davlatlar">
-                    <!-- items injected by JS -->
-                  </div>
-                </div>
-                <!-- phone input -->
-                <input id="localPhone" name="Telefon raqam" class="input" inputmode="numeric" placeholder="99 123-45-67"
-                  required autocomplete="tel" />
-              </div>
+            <p><b>Qalbida halovati yo’qolganlar,</b> <br> xotirjamlikka erishmoqchilar uchun</p>
+          </div>
+
+          <div class="about__list__item">
+            <div class="about__list__item__img-wrapper">
+              <img src="./images/learn/2.avif" loading="lazy" decoding="async" width="249" height="143" alt="images">
             </div>
-            <div style="display: flex; align-items: center;gap: 10px;">
-              <input class="offertaCheck" type="checkbox" value="true" required checked id="check" style="width: 20px; height: 20px;">
-              <label for="check" style="font-size: 12px;">
-                <a style="color: #FF815D;text-decoration: none;" href="https://docs.google.com/document/d/1G_Qkl2UQDherCL0BMluZBIIQ0Q3MyJFcbnegqSfM2kw/edit?tab=t.0">Ommaviy Oferta shartnomasi</a> shartlariga roziman
-              </label>
+            <p><b>Turmush o’rtog’i bilan muammosi <br> borlar,</b> bir-birini tushunishni <br> xohlaganlar</p>
+          </div>
+
+          <div class="about__list__item">
+            <div class="about__list__item__img-wrapper">
+              <img src="./images/learn/3.avif" loading="lazy" decoding="async" width="249" height="143" alt="images">
             </div>
-            <button type="submit" class="btn plan-list-btn">DAVOM ETISH</button>
-          </form>
+            <p><b>Nafrat, negativ fikrlardan</b> <br> qiynalayotganlar, kechirishni <br> o’rganmoqchilar</p>
+          </div>
+
+          <div class="about__list__item">
+            <div class="about__list__item__img-wrapper">
+              <img src="./images/learn/4.avif" loading="lazy" decoding="async" width="249" height="143" alt="images">
+            </div>
+            <p><b>Farzand tarbiyasida</b> <br> muammosi borlar, namunali <br> ona bo’lmoqchilar</p>
+          </div>
+
+          <div class="about__list__item">
+            <div class="about__list__item__img-wrapper">
+              <img src="./images/learn/5.avif" loading="lazy" decoding="async" width="249" height="143" alt="images">
+            </div>
+            <p><b>Ramazon oyini barakali, fayzli</b> <br> va xotirjamlikda o’tkamoqchilar <br> uchun mo’ljallangan</p>
+          </div>
         </div>
       </div>
+    </section>
+
+    <section class="tariffs" id="tarif">
+      <div class="date__container">
+        <h2 class="about__title" style="margin-bottom: 15px;">marafon tariflari</h2>
+
+        <div class="tariffs__wrapper">
+          <!-- Tarif 1 -->
+          <div class="tariffs__box">
+            <div class="tariffs__top">
+              <img src="./images/tariffs/1.avif" loading="lazy" decoding="async" width="300" height="120" alt="images">
+            </div>
+
+            <ul class="tariffs__nav">
+              <li class="tariffs__item">
+                <img src="./images/tariffs/tick.png" loading="lazy" decoding="async" width="26" height="27" alt="tick">
+                <p>15 Kun har kuni audio dars <br> berib boriladi</p>
+              </li>
+              <li class="tariffs__line" aria-hidden="true"></li>
+              <li class="tariffs__item">
+                <img src="./images/tariffs/tick.png" loading="lazy" decoding="async" width="26" height="27" alt="tick">
+                <p style="text-decoration: line-through;">Dars yakunida Rano <br> Muminova bilan jonli efir</p>
+              </li>
+              <li class="tariffs__line" aria-hidden="true"></li>
+              <li class="tariffs__item">
+                <img src="./images/tariffs/tick.png" loading="lazy" decoding="async" width="26" height="27" alt="tick">
+                <p style="text-decoration: line-through;">Kurator yordami</p>
+              </li>
+            </ul>
+
+            <p class="tariffs__title">99 000 so'm</p>
+
+            <!-- ✅ MUHIM: data qo‘shildi -->
+            <button
+              class="tariffs__btn registerBtn"
+              type="button"
+              data-tariff-name="Tejamkor Ayol"
+              data-tariff-price="99000"
+            >ISHTIROK ETISH >>></button>
+          </div>
+
+          <!-- Tarif 2 -->
+          <div class="tariffs__box">
+            <div class="tariffs__top">
+              <img src="./images/tariffs/2.avif" loading="lazy" decoding="async" width="300" height="120" alt="images">
+            </div>
+
+            <ul class="tariffs__nav">
+              <li class="tariffs__item">
+                <img src="./images/tariffs/tick.png" loading="lazy" decoding="async" width="26" height="27" alt="tick">
+                <p>15 Kun har kuni audio dars <br> berib boriladi</p>
+              </li>
+
+              <li class="tariffs__line" aria-hidden="true"></li>
+
+              <li class="tariffs__item">
+                <img src="./images/tariffs/tick.png" loading="lazy" decoding="async" width="26" height="27" alt="tick">
+                <p>Dars yakunida Rano Muminova <br> bilan jonli efir</p>
+              </li>
+
+              <li class="tariffs__line" aria-hidden="true"></li>
+
+              <li class="tariffs__item">
+                <img src="./images/tariffs/tick.png" loading="lazy" decoding="async" width="26" height="27" alt="tick">
+                <p>Kurator yordami</p>
+              </li>
+            </ul>
+
+            <p class="tariffs__title">149 000 so’m</p>
+
+            <button
+              class="tariffs__btn registerBtn"
+              type="button"
+              data-tariff-name="Munosib Ayol"
+              data-tariff-price="149000"
+            >ISHTIROK ETISH >>></button>
+          </div>
+        </div>
+
+        <h3 class="title">
+          <span>Hali ham savollaringiz bormi?</span> <br>
+          Adminimiz bilan bog'lanib <br>
+          to'liq ma'lumot oling
+        </h3>
+
+        <img
+          style="margin-left: auto; margin-right: auto; display: flex; margin-bottom: 42px; max-width: 60px; width: 100%; height: auto;"
+          src="./images/arrow-bottom.svg" alt="arrow-bottom"
+        >
+
+        <a class="date__btns" href="https://t.me/ranomuminovaadmin">Adminga yozish</a>
+      </div>
+    </section>
+
+    <section class="dates">
+      <div class="date__container">
+        <h2 class="about__title" style="margin-bottom: 14px;">o’quvchilarim fikrlari </h2>
+
+        <div class="inf-swiper" style="--speed: 18s;">
+          <div class="inf-swiper__track">
+            <div class="inf-swiper__slide"><img src="./images/comments/1.avif" loading="lazy" decoding="async" width="299" height="417" alt="comment 1"></div>
+            <div class="inf-swiper__slide"><img src="./images/comments/2.avif" loading="lazy" decoding="async" width="299" height="417" alt="comment 2"></div>
+            <div class="inf-swiper__slide"><img src="./images/comments/3.avif" loading="lazy" decoding="async" width="299" height="417" alt="comment 3"></div>
+
+            <div class="inf-swiper__slide"><img src="./images/comments/1.avif" loading="lazy" decoding="async" width="299" height="417" alt="comment 1 duplicate"></div>
+            <div class="inf-swiper__slide"><img src="./images/comments/2.avif" loading="lazy" decoding="async" width="299" height="417" alt="comment 2 duplicate"></div>
+            <div class="inf-swiper__slide"><img src="./images/comments/3.avif" loading="lazy" decoding="async" width="299" height="417" alt="comment 3 duplicate"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal -->
+  <div id="registrationModal" class="homeModal" style="display: none">
+    <div class="homeModalOverlay"></div>
+    <div class="homeFormContainer">
+      <button class="closeButton" id="closeModalBtn" aria-label="Modalni yopish" title="Yopish">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 12 12" fill="none">
+          <path d="M1 11L11 1M1 1.00001L11 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
+      </button>
+
+      <div class="homeFormTop">
+        <h1 class="homeFormTopTitle"> Bepul qatnashish uchun ma'lumotlaringizni kiriting! </h1>
+      </div>
+
+      <form id="registrationForm" name="contact-form">
+        <!-- ✅ MUHIM: tarifni formaga yozish uchun hidden input -->
+        <input type="hidden" name="Tarif" id="tariffInput" value="">
+
+        <!-- ISM -->
+        <div class="HomeFormRow">
+          <label class="HomeFormRowLabel" for="name">Ismingiz:</label>
+          <input class="HomeFormRowInput" type="text" id="name" name="name" placeholder="Ismingizni kiriting" autocomplete="name" />
+          <p class="homeFormErrorText" id="nameError" style="display: none"> ❌ Ismingizni kiriting! </p>
+        </div>
+
+        <!-- TELEFON -->
+        <div class="HomeFormRow">
+          <label class="HomeFormRowLabel" for="phone">Telefon raqamingiz:</label>
+          <div class="phone-input-container">
+            <button type="button" class="selected-country" id="selectedCountry">
+              <span class="selected-flag" id="selectedCountryFlag">🇺🇿</span>
+              <svg id="dropdownIcon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+              <span class="selected-code" id="selectedCountryCodeText">+998</span>
+            </button>
+
+            <div class="country-dropdown" id="countryDropdown" style="display:none"></div>
+
+            <div class="phone-field">
+              <input class="HomeFormRowInput phone-input" type="tel" id="phone" name="phone" inputmode="numeric" placeholder="88 888 88 88" autocomplete="tel"
+                style="border: none; background-color: transparent;padding-left: 5px;" />
+            </div>
+          </div>
+
+          <p class="homeFormErrorText" id="phoneError" style="display:none"> ❌ Telefon raqam mos emas! </p>
+        </div>
+
+        <button type="submit" class="HomeFormBtn" id="submitBtn"> DAVOM ETISH </button>
+      </form>
     </div>
-  </section>
-  <footer>
-    <div class="footer-container">
-      <p class="footer-title">"Nurli Ayol” NTM, barcha huquqlar himoyalangan, 2025</p>
-      <a href="tel:+998958541500" class="footer__number">+998 95 854 15 00</a>
-    </div>
-  </footer>
-  <script defer src="./js/app.js"></script>
+  </div>
+
+  <script src="./js/phoneFormatter.js" defer></script>
+  <script src="./js/index.js" defer></script>
+
+  <!-- ✅ TARIF TANLASH LOGIKASI (copy/paste) -->
+  <script>
+    (function () {
+      document.querySelectorAll(".registerBtn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const name = btn.dataset.tariffName || "Tarif";
+          const price = Number(btn.dataset.tariffPrice || 0);
+
+          const tariff = {
+            name,
+            price,          // UZS
+            currency: "UZS"
+          };
+
+          localStorage.setItem("selectedTariff", JSON.stringify(tariff));
+
+          // Formaga ham yozib qo‘yamiz (siz payload.type uchun)
+          if (tariffInput) tariffInput.value = name;
+
+          openModal();
+        });
+      });
+
+      // Agar user “Marafonda qatnashish >>>” bosib pastga tushsa ham
+      // default tarifni qo‘yib ketamiz (xohlasangiz o‘chiramiz)
+      if (!localStorage.getItem("selectedTariff")) {
+        localStorage.setItem("selectedTariff", JSON.stringify({
+          name: "Standart",
+          price: 99000,
+          currency: "UZS"
+        }));
+        if (tariffInput && !tariffInput.value) tariffInput.value = "Standart";
+      }
+    })();
+  </script>
 </body>
 </html>
